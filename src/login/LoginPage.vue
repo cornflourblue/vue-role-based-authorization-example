@@ -8,13 +8,13 @@
         <form @submit.prevent="onSubmit">
             <div class="form-group">
                 <label for="username">Username</label>
-                <input type="text" v-model="username" name="username" class="form-control" :class="{ 'is-invalid': submitted && !username }" />
-                <div v-show="submitted && !username" class="invalid-feedback">Username is required</div>
+                <input type="text" v-model.trim="$v.username.$model" name="username" class="form-control" :class="{ 'is-invalid': submitted && $v.username.$error }" />
+                <div v-if="submitted && !$v.username.required" class="invalid-feedback">Username is required</div>
             </div>
             <div class="form-group">
                 <label htmlFor="password">Password</label>
-                <input type="password" v-model="password" name="password" class="form-control" :class="{ 'is-invalid': submitted && !password }" />
-                <div v-show="submitted && !password" class="invalid-feedback">Password is required</div>
+                <input type="password" v-model.trim="$v.password.$model" name="password" class="form-control" :class="{ 'is-invalid': submitted && $v.password.$error }" />
+                <div v-if="submitted && !$v.password.required" class="invalid-feedback">Password is required</div>
             </div>
             <div class="form-group">
                 <button class="btn btn-primary" :disabled="loading">
@@ -28,6 +28,8 @@
 </template>
 
 <script>
+import { required } from 'vuelidate/lib/validators';
+
 import { router } from '@/_helpers';
 import { authenticationService } from '@/_services';
 
@@ -42,6 +44,10 @@ export default {
             error: ''
         };
     },
+    validations: {
+      username: { required },
+      password: { required }
+    },
     created () {
         // get return url from route parameters or default to '/'
         this.returnUrl = this.$route.query.returnUrl || '/';
@@ -49,15 +55,15 @@ export default {
     methods: {
         onSubmit () {
             this.submitted = true;
-            const { username, password } = this;
 
             // stop here if form is invalid
-            if (!(username && password)) {
+            this.$v.$touch();
+            if (this.$v.$invalid) {
                 return;
             }
 
             this.loading = true;
-            authenticationService.login(username, password)
+            authenticationService.login(this.username, this.password)
                 .then(
                     user => router.push(this.returnUrl),
                     error => {
